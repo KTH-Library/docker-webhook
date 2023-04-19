@@ -12,9 +12,15 @@ RUN         curl -L --silent -o webhook.tar.gz https://github.com/adnanh/webhook
             rm -rf /var/cache/apk/* && \
             rm -rf /go
 
-FROM        scratch
-COPY        --from=build /usr/local/bin/webhook /usr/local/bin/webhook
-WORKDIR     /etc/webhook
-VOLUME      ["/etc/webhook"]
-EXPOSE      9000
-ENTRYPOINT  ["/usr/local/bin/webhook"]
+FROM alpine
+COPY --from=build /usr/local/bin/webhook /usr/local/bin/webhook
+
+RUN apk --update add --no-cache curl tar bash git ca-certificates tini
+
+WORKDIR /etc/webhook
+VOLUME ["/etc/webhook"]
+EXPOSE 9000
+
+ENTRYPOINT ["/sbin/tini", "--"]
+
+CMD ["/usr/local/bin/webhook", "-verbose", "-hooks", "/etc/webhook/hooks.json", "-hotreload"]
